@@ -111,6 +111,21 @@ Token *new_token(TokenKind kind, Token *cur, char *str){
     return tok;
 }
 
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs){
+    Node *node = calloc(1, sizeof(Node));
+    node->kind =kind;
+    node->lhs = lhs;
+    node->rhs = rhs;
+    return node;
+}
+
+Node *new_node_num(int val){
+    Node *node = calloc(1,sizeof(Node));
+    node->kidn = ND_NUM;
+    node->val = val;
+    return node;
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p){
     Token head;
