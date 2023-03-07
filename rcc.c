@@ -21,6 +21,12 @@ typedef enum {
     ND_MUL, // *
     ND_DIV, // /
     ND_NUM, // 整数
+    ND_EQUAL, // ==
+    ND_NOT_EQUAL, // !=
+    ND_GREATER, // >
+    ND_SMALLER, // <
+    ND_GREATER_OR_EQUAL, // >=
+    ND_SMALLER_OR_EQUAL, // <=
 } NodeKind;
 
 typedef struct Node Node;
@@ -42,6 +48,7 @@ struct Token{
     Token *next;        //次の入力トークン
     int val;            //kindがTK_NUMの場合、その数値
     char *str;          //トークン文字列
+    int len;            //トークンの長さ
 };
 
 /* ----------------関数プロトタイプ宣言-----------------*/
@@ -49,6 +56,9 @@ Node *primary();
 Node *expr();
 Node *mul();
 Node *unary();
+Node *relational();
+Node *add();
+Node *equality();
 
 /* -----------------グローバル変数-------------------- */
 
@@ -85,9 +95,12 @@ void error(char *fmt, ...){
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す
 
-bool consume(char op){
-    if(token->kind != TK_RESERVED || token->str[0] != op)
+bool consume(char *op){
+    // printf("token->len = %d, %d\n",(int)strlen(op),token->len);
+    if(token->kind != TK_RESERVED || (int)strlen(op) != token->len || memcmp(token->str, op, token->len)){
         return false;
+    }
+    // printf("true %s\n", op);
     token = token->next;
     return true;
 }
@@ -116,10 +129,11 @@ bool at_eof(){
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str){
+Token *new_token(TokenKind kind, Token *cur, char *str, int len){
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
+    tok->len = len;
     cur->next = tok;
     return tok;
 }
@@ -146,10 +160,11 @@ primary = num | "(" expr ")"
 */
 
 Node *primary(){
+    
     // 次のトークンが”("なら、 "(" expr ")"のはず
-    if(consume('(')) {
+    if(consume("(")) {
         Node *node = expr();
-        consume(')');
+        consume(")");
         return node;
     }
 
@@ -158,12 +173,13 @@ Node *primary(){
 }
 
 Node *mul(){
+    
     Node *node = unary();
-
+    
     for(;;){
-        if(consume('*')){
+        if(consume("*")){
             node = new_node(ND_MUL, node, unary());
-        }else if(consume('/')){
+        }else if(consume("/")){
             node = new_node(ND_DIV, node, unary());
         }else {
             return node;
@@ -171,28 +187,66 @@ Node *mul(){
     }
 }
 
-Node *unary(){
-    if(consume('+')){
-        return primary();
-    }
-    if(consume('-')){
-        return new_node(ND_SUB, new_node_num(0), primary());
-    }
-    return primary();
-}
-
-Node *expr(){
+Node *add(){
+    
     Node *node = mul();
 
     for(;;){
-        if(consume('+')){
+        if(consume("+")){
             node = new_node(ND_ADD,node, mul());
-        }else if(consume('-')){
+        }else if(consume("-")){
             node = new_node(ND_SUB, node, mul());
         }else{
             return node;
         }
     }
+
+}
+
+Node *unary(){
+    if(consume("+")){
+        return primary();
+    }
+    if(consume("-")){
+        return new_node(ND_SUB, new_node_num(0), primary());
+    }
+    return primary();
+}
+
+Node *equality(){
+    Node *node = relational();
+    for(;;){
+        if(consume("==")){
+            node = new_node(ND_EQUAL, node, relational());
+        }else if(consume("!=")){
+            node = new_node(ND_NOT_EQUAL, node, relational());
+        }else{
+            return node;
+        }
+    }
+}
+
+Node *relational(){
+    Node *node = add();
+
+    for(;;){
+        if(consume("<")){
+            node = new_node(ND_SMALLER, node, add());
+        }else if(consume("<=")){
+            node = new_node(ND_SMALLER_OR_EQUAL, node, add());
+        }else if(consume(">")){
+            node = new_node(ND_SMALLER, add(), node);
+        }else if(consume(">=")){
+            node = new_node(ND_SMALLER_OR_EQUAL, add(), node);
+        }else{
+            return node;
+        }
+    }
+}
+
+Node *expr(){
+    Node *node = equality();
+    return node;
 }
 
 
@@ -222,6 +276,26 @@ void gen(Node *node){
             printf("    cqo\n");
             printf("    idiv rdi\n");
             break;
+        case ND_EQUAL:
+            printf("    cmp rax, rdi\n");
+            printf("    sete al\n");
+            printf("    movzb rax, al\n");
+            break;
+        case ND_NOT_EQUAL:
+            printf("    cmp rax, rdi\n");
+            printf("    setne al\n");
+            printf("    movzb rax, al\n");
+            break;
+        case ND_SMALLER:
+            printf("    cmp rax, rdi\n");
+            printf("    setl al\n");
+            printf("    movzb rax, al\n");
+            break;
+        case ND_SMALLER_OR_EQUAL:
+            printf("    cmp rax, rdi\n");
+            printf("    setle al\n");
+            printf("    movzb rax, al\n");
+            break;
     }
 
     printf("    push rax\n");
@@ -232,22 +306,35 @@ Token *tokenize(char *p){
     Token head;
     head.next = NULL;
     Token *cur = &head;
+    int counter = 0;
 
     while(*p){
+        counter++;
         //空白文字をスキップ
         if(isspace(*p)){
+            // printf("space, %d\n",counter);
             p++;
             continue;
         }
+        if(!strncmp(p, ">=", 2) || !strncmp(p, "<=", 2) || !strncmp(p, "==", 2) || !strncmp(p, "!=", 2)){
+            // printf("two %d\n",counter);
+            cur = new_token(TK_RESERVED, cur, p,2);
+            p+=2;
+            continue;
+        }
 
-        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')'){
-            cur = new_token(TK_RESERVED, cur, p++);
+        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>'){
+            // printf("one %d\n",counter);
+            cur = new_token(TK_RESERVED, cur, p++,1);
             continue;
         }
 
         if(isdigit(*p)){
-            cur = new_token(TK_NUM, cur, p);
+            // printf("num %d\n",counter);
+            cur = new_token(TK_NUM, cur, p,0);
+            char *q = p;
             cur->val = strtol(p,&p, 10);
+            cur->len = p - q; //進んだポインタの差がlenになる
             continue;
         }
 
@@ -256,7 +343,7 @@ Token *tokenize(char *p){
             
     }
 
-    new_token(TK_EOF, cur, p);
+    new_token(TK_EOF, cur, p,0);
     return head.next;
 }
 
