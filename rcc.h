@@ -23,9 +23,7 @@ typedef enum {
     ND_NUM, // 整数
     ND_EQUAL, // ==
     ND_NOT_EQUAL, // !=
-    ND_GREATER, // >
     ND_SMALLER, // <
-    ND_GREATER_OR_EQUAL, // >=
     ND_SMALLER_OR_EQUAL, // <=
 } NodeKind;
 
