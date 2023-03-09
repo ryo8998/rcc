@@ -1,5 +1,6 @@
 #include "rcc.h"
 
+
 // エラーを報告するための関数
 // printfと同じ引数を取る
 void error_at(char *loc, char *fmt, ...){
@@ -23,8 +24,6 @@ void error(char *fmt, ...){
     exit(1);
 }
 
-
-
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す
 
@@ -38,13 +37,22 @@ bool consume(char *op){
     return true;
 }
 
+Token *consume_ident(){ //正直この関数の必要性がわかっていない・・・
+    if(token->kind == TK_IDENT){
+        Token *ret = token;
+        token = token->next;
+        return ret;
+    }
+    return NULL;
+}
+
 // 次のトークガン期待している記号のときには、トークンを1つ読み進める
 // それ以外の場合にはエラーを報告する
-void expect(char op){
-    if(token->kind != TK_RESERVED || token->str[0] != op){
-        error_at(token->str, "'%c’ではありません", op);
-    token = token->next;
+void expect(char *op){
+    if(token->kind != TK_RESERVED || strlen(op) != token->len || memcmp(token->str, op, token->len)){
+        error_at(token->str, "'%s’ではありません", op);
     }
+    token = token->next;
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す
@@ -86,6 +94,21 @@ Node *new_node_num(int val){
     return node;
 }
 
+Node *code[100]; //複数のノードを保存するための配列（ノードのポインタを保存）
+
+void program(){
+    int i = 0;
+    while(!at_eof()){
+        code[i++] = stmt();
+    }
+    code[i] = NULL;
+}
+
+Node *stmt(){
+    Node *node = expr();
+    expect(";");
+    return node;
+}
 
 
 Node *primary(){
@@ -93,11 +116,22 @@ Node *primary(){
     // 次のトークンが”("なら、 "(" expr ")"のはず
     if(consume("(")) {
         Node *node = expr();
-        consume(")");
+        expect(")");
         return node;
     }
 
-    // そうでなければ数値のはず
+    Token *t = consume_ident();
+
+    if(t){
+        Node *node = calloc(1,sizeof(Node));
+        node->kind = ND_LVAR;
+        //識別子aがrbp + 8
+        //識別子bがrbp + 16 のオフセットになるように計算する
+        node->offset = (t->str[0] - 'a' + 1) * 8;
+        return node;
+    }
+
+    // ()でもidentでもなければ数値のはず
     return new_node_num(expect_number());
 }
 
@@ -174,9 +208,17 @@ Node *relational(){
 }
 
 Node *expr(){
+    return assign();
+}
+
+Node *assign(){
     Node *node = equality();
+    if(consume("=")){
+        node = new_node(ND_ASSIGN, node , assign());
+    }
     return node;
 }
+
 
 
 // 入力文字列pをトークナイズしてそれを返す
@@ -202,7 +244,12 @@ Token *tokenize(char *p){
             continue;
         }
 
-        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>'){
+        if('a' <= *p && *p <= 'z'){
+            cur = new_token(TK_IDENT, cur, p++, 1);
+            continue;
+        }
+
+        if(*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '<' || *p == '>' || *p == '=' || *p == ';'){
             // printf("one %d\n",counter);
             cur = new_token(TK_RESERVED, cur, p++,1);
             continue;
