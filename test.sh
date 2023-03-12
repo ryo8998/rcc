@@ -32,7 +32,8 @@ assert 1 '(1+4) < (2*5);'
 assert 0 '3*3 != 9*1;'
 assert 1 '5*3 >= 12/4;'
 assert 1 '5*2 <= 20/2;'
-assert 10 'a = 10;'
-assert 11 'a =10;b=a;b+1;'
+assert 10 "a = 10;"
+assert 11 "a =10;b=a;b+1;"
+assert 10 "foo=10;"
 # assert 20 'a=b=10;' このテストケースが通らない
 echo OK

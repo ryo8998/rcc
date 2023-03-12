@@ -12,7 +12,11 @@ int main(int argc, char **argv){
 
     // トークナイズしてパースする
     user_input = argv[1];
+
+    locals = dummy_lvar();
+
     token = tokenize(user_input);
+    // print_token();
     program();
 
 #if 1

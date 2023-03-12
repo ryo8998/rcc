@@ -1,5 +1,7 @@
 #include "rcc.h"
 
+// ローカル変数を保存する連結リストの先頭
+LVar *locals = NULL;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -120,14 +122,25 @@ Node *primary(){
         return node;
     }
 
-    Token *t = consume_ident();
+    Token *tok = consume_ident();
 
-    if(t){
+    if(tok){
         Node *node = calloc(1,sizeof(Node));
         node->kind = ND_LVAR;
-        //識別子aがrbp + 8
-        //識別子bがrbp + 16 のオフセットになるように計算する
-        node->offset = (t->str[0] - 'a' + 1) * 8;
+
+        LVar *lvar = find_lvar(tok);
+        if(lvar){
+            node->offset = lvar->offset;
+        }else{
+            lvar = calloc(1,sizeof(LVar));
+            lvar->name = tok->str;
+            lvar->len = tok->len;
+            lvar->next = locals;
+            lvar->offset = locals->offset + 8;
+            // lvar->offset = 8;
+            node->offset = lvar->offset;
+            locals = lvar;
+        }
         return node;
     }
 
@@ -219,17 +232,40 @@ Node *assign(){
     return node;
 }
 
+LVar *dummy_lvar(){
+    LVar *var = calloc(1,sizeof(LVar));
+    var->next = NULL;
+    var->offset = 0;
+}
 
+LVar *find_lvar(Token *tok){
+    //これまで保存されているローカル変数を走査する
+    for(LVar *var = locals; var; var = var->next){
+        //もし同じものがあればそのノードを返す
+        if(var->len == token->len && memcmp(tok->str, var->name, var->len) == 0){
+            return var;
+        }
+    }
+    return NULL;
+}
+
+bool is_ident1(char c){
+    //最初の文字がアルファベットか_なら識別子
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+bool is_ident2(char c){
+    //識別子の2文字目以降はident1か数字
+    return is_ident1(c) || ('0' <= c && c <= '9');
+}
 
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p){
     Token head;
     head.next = NULL;
     Token *cur = &head;
-    int counter = 0;
 
     while(*p){
-        counter++;
         //空白文字をスキップ
         if(isspace(*p)){
             // printf("space, %d\n",counter);
@@ -244,8 +280,15 @@ Token *tokenize(char *p){
             continue;
         }
 
-        if('a' <= *p && *p <= 'z'){
-            cur = new_token(TK_IDENT, cur, p++, 1);
+        if(is_ident1(*p)){
+            char *start = p;
+
+            do{
+                p++;
+            }while(is_ident2(*p));
+            //何文字進んだかを把握する
+            int len = p - start;
+            cur = new_token(TK_IDENT, cur, start, len);
             continue;
         }
 
@@ -267,4 +310,12 @@ Token *tokenize(char *p){
     }
     new_token(TK_EOF, cur, p,0);
     return head.next;
+}
+
+void print_token(){
+    Token *iterator = token;
+    while(iterator){
+        printf("%d -> ",iterator->kind);
+        iterator=iterator->next;
+    }
 }
