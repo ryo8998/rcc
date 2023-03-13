@@ -13,6 +13,7 @@ typedef enum{
     TK_IDENT,       //識別子
     TK_NUM,         //整数トークン
     TK_RET,         //リターン文
+    TK_IF,          //if文
     TK_EOF,         //入力の終わりを表すトークン
 } TokenKind;
 
@@ -30,6 +31,7 @@ typedef enum {
     ND_ASSIGN, //=
     ND_LVAR, //ローカル変数
     ND_RET, //return
+    ND_IF,  //if
 } NodeKind;
 
 typedef struct Node Node;
@@ -64,13 +66,12 @@ struct LVar{
     int offset; //RBPからのオフセット
 };
 
-//ローカル変数
-extern LVar *locals;
-
 /* ----------------グローバル変数-----------------*/
+extern LVar *locals;
 extern Token *token;
 extern char* user_input;
 extern Node *code[100];
+extern int serial_number;
 
 /* ----------------関数プロトタイプ宣言-----------------*/
 void error_at(char *loc, char *fmt, ...);

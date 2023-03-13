@@ -40,4 +40,8 @@ assert 1  "return 1;"
 assert 15 "return 15;return 3;"
 assert 14 "a=3;b=5*6-8;return a+b/2;"
 assert 5  "returnx = 5;"
+assert 3  "if(1==1) return 3;"
+assert 5  "if(0) return 3; return 5;"
+assert 2  "if(1==1) a=2;"
+
 echo OK

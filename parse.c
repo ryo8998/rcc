@@ -56,6 +56,14 @@ bool consume_return(){
     return true;
 }
 
+bool consume_if(){
+    if(token->kind != TK_IF){
+        return false;
+    }
+    token = token->next;
+    return true;
+}
+
 // 次のトークガン期待している記号のときには、トークンを1つ読み進める
 // それ以外の場合にはエラーを報告する
 void expect(char *op){
@@ -121,10 +129,19 @@ Node *stmt(){
        node = calloc(1,sizeof(Node));
        node->kind = ND_RET;
        node->lhs = expr();
+       expect(";");
+    }else if(consume_if()){
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_IF;
+        expect("(");
+        node->lhs = expr();
+        expect(")");
+        node->rhs = stmt();
     }else{
         node = expr();
+        expect(";");
     }
-    expect(";");
+    
 
     return node;
 }
@@ -301,6 +318,12 @@ Token *tokenize(char *p){
         if(strncmp(p, "return", 6) == 0 && !is_ident2(p[6])) {
             cur = new_token(TK_RET, cur, p, 6);
             p+=6;
+            continue;
+        }
+
+        if(strncmp(p,"if", 2) == 0){
+            cur = new_token(TK_IF, cur, p, 2);
+            p+=2;
             continue;
         }
 

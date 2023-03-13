@@ -1,5 +1,7 @@
 #include "rcc.h"
 
+int serial_number = 0;
+
 void gen_lval(Node *node){
     if(node->kind != ND_LVAR){
         error("代入の左辺値が変数ではありません");
@@ -17,6 +19,16 @@ void gen(Node *node){
         printf("    mov rsp, rbp\n");
         printf("    pop rbp\n");
         printf("    ret\n");
+        return;
+    }
+
+    if(node->kind == ND_IF){
+        gen(node->lhs);
+        printf("    pop rax\n");
+        printf("    cmp rax, 0\n");
+        printf("    je .Lend%04d\n", serial_number);
+        gen(node->rhs);
+        printf(".Lend%04d:", serial_number);
         return;
     }
 
