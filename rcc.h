@@ -12,6 +12,7 @@ typedef enum{
     TK_RESERVED,    //記号
     TK_IDENT,       //識別子
     TK_NUM,         //整数トークン
+    TK_RET,         //リターン文
     TK_EOF,         //入力の終わりを表すトークン
 } TokenKind;
 
@@ -28,6 +29,7 @@ typedef enum {
     ND_SMALLER_OR_EQUAL, // <=
     ND_ASSIGN, //=
     ND_LVAR, //ローカル変数
+    ND_RET, //return
 } NodeKind;
 
 typedef struct Node Node;

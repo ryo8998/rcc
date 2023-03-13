@@ -7,7 +7,7 @@ main:
     mov rax, rbp
     sub rax, 8
     push rax
-    push 10
+    push 5
     pop rdi
     pop rax
     mov [rax], rdi
@@ -18,7 +18,7 @@ main:
     pop rax
     mov rax, [rax]
     push rax
-    push 10
+    push 5
     pop rdi
     pop rax
     push rax

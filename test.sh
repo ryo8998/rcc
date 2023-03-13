@@ -36,4 +36,8 @@ assert 10 "a = 10;"
 assert 11 "a =10;b=a;b+1;"
 assert 10 "foo=10;"
 # assert 20 'a=b=10;' このテストケースが通らない
+assert 1  "return 1;"
+assert 15 "return 15;return 3;"
+assert 14 "a=3;b=5*6-8;return a+b/2;"
+assert 5  "returnx = 5;"
 echo OK

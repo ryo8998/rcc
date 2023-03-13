@@ -48,6 +48,14 @@ Token *consume_ident(){ //正直この関数の必要性がわかっていない
     return NULL;
 }
 
+bool consume_return(){
+    if(token->kind != TK_RET){
+        return false;
+    }
+    token = token->next;
+    return true;
+}
+
 // 次のトークガン期待している記号のときには、トークンを1つ読み進める
 // それ以外の場合にはエラーを報告する
 void expect(char *op){
@@ -107,8 +115,17 @@ void program(){
 }
 
 Node *stmt(){
-    Node *node = expr();
+    Node *node;
+
+    if(consume_return()){
+       node = calloc(1,sizeof(Node));
+       node->kind = ND_RET;
+       node->lhs = expr();
+    }else{
+        node = expr();
+    }
     expect(";");
+
     return node;
 }
 
@@ -259,6 +276,7 @@ bool is_ident2(char c){
     return is_ident1(c) || ('0' <= c && c <= '9');
 }
 
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p){
     Token head;
@@ -277,6 +295,12 @@ Token *tokenize(char *p){
             // printf("two %d\n",counter);
             cur = new_token(TK_RESERVED, cur, p,2);
             p+=2;
+            continue;
+        }
+
+        if(strncmp(p, "return", 6) == 0 && !is_ident2(p[6])) {
+            cur = new_token(TK_RET, cur, p, 6);
+            p+=6;
             continue;
         }
 
