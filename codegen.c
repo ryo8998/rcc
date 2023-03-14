@@ -1,6 +1,10 @@
 #include "rcc.h"
 
+/* ---------------- グローバル変数  -------------------*/
 int serial_number = 0;
+
+
+/* ---------------- 関数  -------------------*/
 
 void gen_lval(Node *node){
     if(node->kind != ND_LVAR){

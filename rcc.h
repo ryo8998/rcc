@@ -66,6 +66,7 @@ struct LVar{
     int offset; //RBPからのオフセット
 };
 
+
 /* ----------------グローバル変数-----------------*/
 extern LVar *locals;
 extern Token *token;

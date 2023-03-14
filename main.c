@@ -1,7 +1,5 @@
 #include "rcc.h"
 
-// 現在着目しているトークン
-Token *token;
 char* user_input;
 
 int main(int argc, char **argv){
